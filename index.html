@@ -27,6 +27,17 @@
     --card:#1d1d22; --code-bg:#222227;
   }
 }
+/* 수동 테마 오버라이드 */
+html[data-theme="dark"]{
+  --bg:#15151a; --fg:#e8e8e3; --fg-2:#a8a8a0; --fg-3:#6c6c66;
+  --line:rgba(255,255,255,0.10); --line-2:rgba(255,255,255,0.18);
+  --card:#1d1d22; --code-bg:#222227;
+}
+html[data-theme="light"]{
+  --bg:#fafaf7; --fg:#1a1a18; --fg-2:#555550; --fg-3:#8b8a82;
+  --line:rgba(0,0,0,0.10); --line-2:rgba(0,0,0,0.18);
+  --card:#ffffff; --code-bg:#f3f1ec;
+}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
@@ -35,7 +46,7 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 .wrap{max-width:1280px; margin:0 auto; padding:32px 24px 64px}
-header{border-bottom:1px solid var(--line); padding-bottom:24px; margin-bottom:32px}
+header{border-bottom:1px solid var(--line); padding-bottom:24px; margin-bottom:32px; position:relative;}
 .eyebrow{
   font-family:var(--font-mono); font-size:11px; letter-spacing:0.12em;
   text-transform:uppercase; color:var(--fg-3); margin-bottom:10px;
@@ -338,6 +349,8 @@ input[type="search"]:focus{outline:none; border-color:#2a4d3e}
 /* L2 Class: 중간 */
 .ast-name.l2{ font-size:13px; font-weight:600; color:#3a3a38; }
 @media(prefers-color-scheme:dark){ .ast-name.l2{ color:#c8c8c2; } }
+html[data-theme="dark"]  .ast-name.l2{ color:#c8c8c2; }
+html[data-theme="light"] .ast-name.l2{ color:#3a3a38; }
 .ast-row.l2-row{ padding:3px 0 1px; }
 /* L3 Order: 작고 가볍게 */
 .ast-name.l3{ font-size:11.5px; font-weight:400; color:var(--fg-2); }
@@ -529,6 +542,16 @@ footer a:hover{color:var(--fg)}
   border-radius:4px;
 }
 .toc a:hover{color:var(--fg); border-color:var(--line-2)}
+/* ── Theme toggle button ────────────────────────────────────────────────────── */
+.theme-toggle{
+  position:absolute; top:0; right:0;
+  background:var(--card); border:1px solid var(--line);
+  border-radius:6px; padding:6px 14px; cursor:pointer;
+  font-family:var(--font-sans); font-size:13px; font-weight:500;
+  color:var(--fg-2); display:flex; align-items:center; gap:7px;
+  transition:all 0.15s; line-height:1;
+}
+.theme-toggle:hover{ border-color:var(--line-2); color:var(--fg); }
 /* ── Tab switching ─────────────────────────────────────────────────────────── */
 .tab-bar {
   display: flex;
@@ -560,12 +583,23 @@ footer a:hover{color:var(--fg)}
 /* ── EDA pane sub-wrap ─────────────────────────────────────────────────────── */
 .eda-inner { max-width: 920px; margin: 0 auto; }
 </style>
+<!-- 플래시 방지: DOM 렌더 전 테마 적용 -->
+<script>
+(function(){
+  var saved = localStorage.getItem('corl-theme');
+  var theme = saved || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  document.documentElement.dataset.theme = theme;
+})();
+</script>
 </head>
 <body>
 <div class="wrap">
 
   <!-- Shared header -->
   <header>
+    <button id="theme-toggle" class="theme-toggle" aria-label="테마 전환">
+      <span id="theme-icon"></span><span id="theme-label"></span>
+    </button>
     <div class="eyebrow">CoRL Phylogeny · 2020–2025</div>
     <h1>CoRL Robot Learning <em>Phylogeny</em></h1>
     <p class="lede">CoRL 1,254편을 17 Phylum × 127 Class × 246 Order로 분류한 계통도. 탭으로 인터랙티브 트리와 EDA 차트를 전환할 수 있습니다.</p>
@@ -1559,6 +1593,30 @@ Methodology inspired by <a href="https://gisbi-kim.github.io/robotics-paper-phyl
 })();
 </script>
 
+<!-- Theme toggle JS -->
+<script>
+(function(){
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('corl-theme', theme);
+    const icon  = document.getElementById('theme-icon');
+    const label = document.getElementById('theme-label');
+    if (icon)  icon.textContent  = theme === 'dark' ? '☀️' : '🌙';
+    if (label) label.textContent = theme === 'dark' ? '라이트 모드' : '다크 모드';
+    // 캔버스 sunburst 재드로우
+    if (typeof window._edaDrawSun === 'function') window._edaDrawSun();
+  }
+  // 초기 적용 (early script에서 data-theme은 이미 세팅됨 — 아이콘/라벨만 동기화)
+  applyTheme(document.documentElement.dataset.theme ||
+    (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'));
+
+  document.getElementById('theme-toggle').addEventListener('click', function() {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+  });
+})();
+</script>
+
 <!-- Tree scripts -->
 <script type="module">
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
@@ -1882,8 +1940,7 @@ function update(source) {
     .attr('d', d => {
       const o = {x: source.x0, y: source.y0};
       return diagonal({source: o, target: o});
-    })
-    .attr('stroke', linkColor);
+    });
 
   linkEnter.merge(link).transition().duration(duration)
     .attr('d', diagonal);
