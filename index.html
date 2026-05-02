@@ -1804,7 +1804,7 @@ function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function paperUrl(title) {
-  return 'https://arxiv.org/search/?query=' + encodeURIComponent(title) + '&searchtype=ti';
+  return 'https://www.google.com/search?q=' + encodeURIComponent('site:arxiv.org ' + title);
 }
 
 const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
